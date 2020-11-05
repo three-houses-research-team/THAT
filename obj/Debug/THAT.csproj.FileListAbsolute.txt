@@ -1,0 +1,14 @@
+D:\Users\moonl\source\repos\THAT\obj\Debug\THAT.csprojAssemblyReference.cache
+D:\Users\moonl\source\repos\THAT\obj\Debug\THAT.Form1.resources
+D:\Users\moonl\source\repos\THAT\obj\Debug\THAT.Properties.Resources.resources
+D:\Users\moonl\source\repos\THAT\obj\Debug\THAT.csproj.GenerateResource.cache
+D:\Users\moonl\source\repos\THAT\obj\Debug\THAT.csproj.CoreCompileInputs.cache
+D:\Users\moonl\source\repos\THAT\obj\Debug\THAT.exe
+D:\Users\moonl\source\repos\THAT\obj\Debug\THAT.pdb
+D:\Users\moonl\source\repos\THAT\bin\Debug\THAT.exe.config
+D:\Users\moonl\source\repos\THAT\bin\Debug\THAT.exe
+D:\Users\moonl\source\repos\THAT\bin\Debug\THAT.pdb
+D:\Users\moonl\source\repos\THAT\bin\Debug\DotNetZip.xml
+D:\Users\moonl\source\repos\THAT\bin\Debug\OpenTK.xml
+D:\Users\moonl\source\repos\THAT\obj\Debug\THAT.csproj.CopyComplete
+D:\Users\moonl\source\repos\THAT\obj\Debug\THAT.csproj.Fody.CopyLocal.cache
