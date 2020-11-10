@@ -89,9 +89,13 @@ namespace THAT
         {
             if (Directory.Exists(path))
             {
-                if (ModifierKeys == Keys.Control)
+                if (ModifierKeys == Keys.Control || ModifierKeys == Keys.Shift)
                 {
-                    string outfile = Path.GetDirectoryName(path) + Path.DirectorySeparatorChar + Path.GetFileName(path) + ".bin";
+                    string outfile = "";
+                    if (ModifierKeys == Keys.Shift)
+                        outfile = Path.GetDirectoryName(path) + Path.DirectorySeparatorChar + Path.GetFileName(path) + ".bin.gz";
+                    else
+                        outfile = Path.GetDirectoryName(path) + Path.DirectorySeparatorChar + Path.GetFileName(path) + ".bin";
                     Bin.FileList = new List<byte[]>();
                     List<string> list = new List<string>();
                     string[] files = Directory.GetFiles(path, "*", SearchOption.AllDirectories);
@@ -116,7 +120,10 @@ namespace THAT
                         Bin.FileList.Add(filetoadd);
                     }
                     Bin.Build(Bin.FileList, outfile);
-                    AddLine(RTB_Output, string.Format("Packed {0} to {1}", Path.GetFileName(path), Path.GetFileName(path) + ".bin"));
+                    if (ModifierKeys == Keys.Shift)
+                        AddLine(RTB_Output, string.Format("Packed {0} to {1}", Path.GetFileName(path), Path.GetFileName(path) + ".bin.gz"));
+                    else
+                        AddLine(RTB_Output, string.Format("Packed {0} to {1}", Path.GetFileName(path), Path.GetFileName(path) + ".bin"));
                 }
             }
             if (File.Exists(path))
