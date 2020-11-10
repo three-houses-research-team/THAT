@@ -120,7 +120,7 @@ namespace G1Tool.Formats
             }
             else if (magic == "53-57-47-51")
             {
-                return ".qgws";
+                return ".swgq";
             }
             else if (magic == "00-19-12-16")
             {
@@ -136,7 +136,7 @@ namespace G1Tool.Formats
             }
             else 
             {
-                return ".misc";
+                return ".bin";
             }
         }
     }

@@ -36,6 +36,7 @@
             this.B_Options = new System.Windows.Forms.ToolStripDropDownButton();
             this.TB_FilePath = new System.Windows.Forms.TextBox();
             this.RTB_Output = new System.Windows.Forms.RichTextBox();
+            this.B_BatchCompress = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStrip1.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -79,6 +80,8 @@
             // B_Options
             // 
             this.B_Options.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            this.B_Options.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.B_BatchCompress});
             this.B_Options.Image = ((System.Drawing.Image)(resources.GetObject("B_Options.Image")));
             this.B_Options.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.B_Options.Name = "B_Options";
@@ -103,6 +106,13 @@
             this.RTB_Output.TabIndex = 2;
             this.RTB_Output.Text = "Open a file, or Drag/Drop several! Click this box to clear its text.\n";
             this.RTB_Output.Click += new System.EventHandler(this.RTB_Output_Click);
+            // 
+            // B_BatchCompress
+            // 
+            this.B_BatchCompress.CheckOnClick = true;
+            this.B_BatchCompress.Name = "B_BatchCompress";
+            this.B_BatchCompress.Size = new System.Drawing.Size(180, 22);
+            this.B_BatchCompress.Text = "Batch Compress";
             // 
             // Form1
             // 
@@ -132,6 +142,7 @@
         private System.Windows.Forms.ToolStripMenuItem B_Open;
         private System.Windows.Forms.ToolStripMenuItem B_Go;
         private System.Windows.Forms.RichTextBox RTB_Output;
+        private System.Windows.Forms.ToolStripMenuItem B_BatchCompress;
     }
 }
 

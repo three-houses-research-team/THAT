@@ -10,8 +10,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.IO;
-using System.IO.Compression;
-
 namespace THAT
 {
     public partial class Form1 : Form
@@ -102,7 +100,17 @@ namespace THAT
                         string filename = Path.GetFileName(file);
                         list.Add(filename);
                     }
-                    list = list.OrderBy(x => int.Parse(x.Split('.')[0])).ToList();
+                    try
+                    {
+                        list = list.OrderBy(x => int.Parse(x.Split('.')[0])).ToList();
+                    }
+                    catch (FormatException ex)
+                    {
+                        // File names big borked
+                        AddLine(RTB_Output, string.Format("Unable to pack {0}. Filename Error", Path.GetFileName(path)));
+                        Console.WriteLine(ex.Message);
+                        return;
+                    }
                     foreach (string file in list) {
                         byte[] filetoadd = File.ReadAllBytes(path + Path.DirectorySeparatorChar + file);
                         Bin.FileList.Add(filetoadd);
@@ -116,10 +124,33 @@ namespace THAT
                 string ext = Path.GetExtension(path).ToLower();
                 string filename = Path.GetFileNameWithoutExtension(path).ToLower();
 
-                if (ModifierKeys == Keys.Control)
+                if (ModifierKeys == Keys.Control || B_BatchCompress.Checked)
                 {
                     File.WriteAllBytes(path + ".gz", GZip.Compress(File.ReadAllBytes(path)));
                     AddLine(RTB_Output, string.Format("KTGZ compressed {0} to {1}", Path.GetFileName(path), Path.GetFileName(path) + ".gz"));
+                }
+                else if (ModifierKeys == Keys.Shift)
+                {
+                    if (ext == ".gz")
+                    {
+                        if (File.Exists(Path.GetDirectoryName(path) + Path.DirectorySeparatorChar + Path.GetFileNameWithoutExtension(path)))
+                            AddLine(RTB_Output, string.Format("File {0} already exists", Path.GetFileNameWithoutExtension(path)));
+                        else
+                        {
+                            File.Move(path, Path.GetDirectoryName(path) + Path.DirectorySeparatorChar + Path.GetFileNameWithoutExtension(path));
+                            AddLine(RTB_Output, string.Format("Renaming {0} to {1}", Path.GetFileName(path), Path.GetFileNameWithoutExtension(path)));
+                        }
+                    }
+                    if (ext == ".bin")
+                    {
+                        if (File.Exists(Path.GetDirectoryName(path) + Path.DirectorySeparatorChar + Path.GetFileName(path) + ".gz"))
+                            AddLine(RTB_Output, string.Format("File {0} already exists", Path.GetFileName(path)));
+                        else
+                        {
+                            File.Move(path, Path.GetDirectoryName(path) + Path.DirectorySeparatorChar + Path.GetFileName(path) + ".gz");
+                            AddLine(RTB_Output, string.Format("Renaming {0} to {1}", Path.GetFileName(path), Path.GetFileName(path) + ".gz"));
+                        }
+                    }
                 }
                 else if (ext == ".gz")
                 {
