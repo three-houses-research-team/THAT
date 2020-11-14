@@ -161,11 +161,12 @@ namespace THAT
                 }
                 else if (ext == ".gz")
                 {
-                    byte[] filedata = File.ReadAllBytes(path);
-                    string decpath = Path.GetDirectoryName(path) + Path.DirectorySeparatorChar + Path.GetFileNameWithoutExtension(path);
                     try
                     {
-                        File.WriteAllBytes(decpath, GZip.Decompress(filedata));
+                        byte[] dec = GZip.Decompress(File.ReadAllBytes(path));
+                        string decext = Bin.GetMagic(dec);
+                        string decpath = Path.GetDirectoryName(path) + Path.DirectorySeparatorChar + Path.GetFileNameWithoutExtension(path) + decext;
+                        File.WriteAllBytes(decpath, dec);
                         AddLine(RTB_Output, string.Format("Successfully decompressed {0}.", Path.GetFileName(decpath)));
                     }
                     catch (Exception ex)

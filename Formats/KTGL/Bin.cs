@@ -73,9 +73,7 @@ namespace G1Tool.Formats
                     }
                     else
                     {
-                        byte[] header = new byte[4];
-                        Array.Copy(buffer, 0, header, 0, 4);
-                        ext = GetMagic(header);
+                        ext = GetMagic(buffer);
                     }
                     File.WriteAllBytes(outfile + Path.DirectorySeparatorChar + index + ext, buffer);
                 }
@@ -103,9 +101,11 @@ namespace G1Tool.Formats
             }
         }
 
-        private static string GetMagic(byte[] inbytes)
+        public static string GetMagic(byte[] inbytes)
         {
-            string magic = BitConverter.ToString(inbytes).ToLower();
+            byte[] header = new byte[4];
+            Array.Copy(inbytes, 0, header, 0, 4);
+            string magic = BitConverter.ToString(header).ToLower();
             if (magic == "47-54-31-47")
             {
                 return ".g1t";
@@ -133,6 +133,10 @@ namespace G1Tool.Formats
             else if (magic == "47-31-41-5f")
             {
                 return ".rigb";
+            }
+            else if (magic == "00-00-01-00")
+            {
+                return ".gz";
             }
             else 
             {
