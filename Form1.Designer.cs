@@ -34,9 +34,10 @@
             this.B_Open = new System.Windows.Forms.ToolStripMenuItem();
             this.B_Go = new System.Windows.Forms.ToolStripMenuItem();
             this.B_Options = new System.Windows.Forms.ToolStripDropDownButton();
+            this.B_BatchCompress = new System.Windows.Forms.ToolStripMenuItem();
             this.TB_FilePath = new System.Windows.Forms.TextBox();
             this.RTB_Output = new System.Windows.Forms.RichTextBox();
-            this.B_BatchCompress = new System.Windows.Forms.ToolStripMenuItem();
+            this.B_DeleteAfterProcessing = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStrip1.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -81,12 +82,20 @@
             // 
             this.B_Options.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
             this.B_Options.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.B_BatchCompress});
+            this.B_BatchCompress,
+            this.B_DeleteAfterProcessing});
             this.B_Options.Image = ((System.Drawing.Image)(resources.GetObject("B_Options.Image")));
             this.B_Options.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.B_Options.Name = "B_Options";
             this.B_Options.Size = new System.Drawing.Size(62, 22);
             this.B_Options.Text = "Options";
+            // 
+            // B_BatchCompress
+            // 
+            this.B_BatchCompress.CheckOnClick = true;
+            this.B_BatchCompress.Name = "B_BatchCompress";
+            this.B_BatchCompress.Size = new System.Drawing.Size(196, 22);
+            this.B_BatchCompress.Text = "Batch Compress";
             // 
             // TB_FilePath
             // 
@@ -107,12 +116,12 @@
             this.RTB_Output.Text = "Open a file, or Drag/Drop several! Click this box to clear its text.\n";
             this.RTB_Output.Click += new System.EventHandler(this.RTB_Output_Click);
             // 
-            // B_BatchCompress
+            // B_DeleteAfterProcessing
             // 
-            this.B_BatchCompress.CheckOnClick = true;
-            this.B_BatchCompress.Name = "B_BatchCompress";
-            this.B_BatchCompress.Size = new System.Drawing.Size(180, 22);
-            this.B_BatchCompress.Text = "Batch Compress";
+            this.B_DeleteAfterProcessing.CheckOnClick = true;
+            this.B_DeleteAfterProcessing.Name = "B_DeleteAfterProcessing";
+            this.B_DeleteAfterProcessing.Size = new System.Drawing.Size(196, 22);
+            this.B_DeleteAfterProcessing.Text = "Delete After Processing";
             // 
             // Form1
             // 
@@ -143,6 +152,7 @@
         private System.Windows.Forms.ToolStripMenuItem B_Go;
         private System.Windows.Forms.RichTextBox RTB_Output;
         private System.Windows.Forms.ToolStripMenuItem B_BatchCompress;
+        private System.Windows.Forms.ToolStripMenuItem B_DeleteAfterProcessing;
     }
 }
 

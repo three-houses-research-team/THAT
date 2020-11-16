@@ -181,6 +181,10 @@ namespace THAT
                     Bin.Extract(path, decpath);
                     AddLine(RTB_Output, string.Format("Successfully extracted {0}.", Path.GetFileName(path)));
                 }
+                if (B_DeleteAfterProcessing.Checked)
+                {
+                    File.Delete(path);
+                }
             }
         }
 
