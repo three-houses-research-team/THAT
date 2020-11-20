@@ -126,13 +126,13 @@ namespace G1Tool.Formats
             {
                 return ".data";
             }
-            else if (magic == "47-32-41-5f")
+            else if (magic == "5f-41-32-47")
             {
-                return ".rigb";
+                return ".g2a";
             }
-            else if (magic == "47-31-41-5f")
+            else if (magic == "5f-41-31-47")
             {
-                return ".rigb";
+                return ".g1a";
             }
             else if (magic == "00-00-01-00")
             {
