@@ -87,6 +87,8 @@ namespace THAT
 
         private void Open(string path)
         {
+            byte[] infile = File.ReadAllBytes(path);
+            string magic = Bin.GetMagic(infile);
             if (Directory.Exists(path))
             {
                 if (ModifierKeys == Keys.Control || ModifierKeys == Keys.Shift)
@@ -136,36 +138,17 @@ namespace THAT
                     File.WriteAllBytes(path + ".gz", GZip.Compress(File.ReadAllBytes(path)));
                     AddLine(RTB_Output, string.Format("KTGZ compressed {0} to {1}", Path.GetFileName(path), Path.GetFileName(path) + ".gz"));
                 }
-                else if (ModifierKeys == Keys.Shift)
-                {
-                    if (ext == ".gz")
-                    {
-                        if (File.Exists(Path.GetDirectoryName(path) + Path.DirectorySeparatorChar + Path.GetFileNameWithoutExtension(path)))
-                            AddLine(RTB_Output, string.Format("File {0} already exists", Path.GetFileNameWithoutExtension(path)));
-                        else
-                        {
-                            File.Move(path, Path.GetDirectoryName(path) + Path.DirectorySeparatorChar + Path.GetFileNameWithoutExtension(path));
-                            AddLine(RTB_Output, string.Format("Renaming {0} to {1}", Path.GetFileName(path), Path.GetFileNameWithoutExtension(path)));
-                        }
-                    }
-                    if (ext == ".bin")
-                    {
-                        if (File.Exists(Path.GetDirectoryName(path) + Path.DirectorySeparatorChar + Path.GetFileName(path) + ".gz"))
-                            AddLine(RTB_Output, string.Format("File {0} already exists", Path.GetFileName(path)));
-                        else
-                        {
-                            File.Move(path, Path.GetDirectoryName(path) + Path.DirectorySeparatorChar + Path.GetFileName(path) + ".gz");
-                            AddLine(RTB_Output, string.Format("Renaming {0} to {1}", Path.GetFileName(path), Path.GetFileName(path) + ".gz"));
-                        }
-                    }
-                }
-                else if (ext == ".gz")
+                else if (magic == ".gz")
                 {
                     try
                     {
                         byte[] dec = GZip.Decompress(File.ReadAllBytes(path));
                         string decext = Bin.GetMagic(dec);
-                        string decpath = Path.GetDirectoryName(path) + Path.DirectorySeparatorChar + Path.GetFileNameWithoutExtension(path) + decext;
+                        string decpath;
+                        if (decext == ".bin")
+                            decpath = Path.GetDirectoryName(path) + Path.DirectorySeparatorChar + Path.GetFileNameWithoutExtension(path);
+                        else
+                            decpath = Path.GetDirectoryName(path) + Path.DirectorySeparatorChar + Path.GetFileNameWithoutExtension(path) + decext;
                         File.WriteAllBytes(decpath, dec);
                         AddLine(RTB_Output, string.Format("Successfully decompressed {0}.", Path.GetFileName(decpath)));
                     }
@@ -175,7 +158,7 @@ namespace THAT
                         Console.WriteLine(ex.Message);
                     }
                 }
-                else if (ext == ".bin" || ext == ".datatable")
+                else if (magic == ".bin" || ext == ".datatable")
                 {
                     string decpath = Path.GetDirectoryName(path) + Path.DirectorySeparatorChar + Path.GetFileNameWithoutExtension(path);
                     Bin.Extract(path, decpath);
