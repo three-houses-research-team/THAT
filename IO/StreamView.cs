@@ -1,7 +1,7 @@
 ﻿using System;
 using System.IO;
 
-namespace G1Tool.IO
+namespace THAT
 {
     public class StreamView : Stream
     {

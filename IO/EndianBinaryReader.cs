@@ -1,16 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Text;
 using System.Numerics;
+using System.Text;
 
-namespace G1Tool.IO
+namespace THAT
 {
-    public class EndianBinaryReader : BinaryReader
+    public sealed class EndianBinaryReader : BinaryReader
     {
-        private StringBuilder mStringBuilder;
         private Endianness mEndianness;
         private Dictionary<long, object> mObjectLookup;
+        private Stack<long> mBaseOffsetStack;
 
         public Endianness Endianness
         {
@@ -34,27 +34,36 @@ namespace G1Tool.IO
 
         public long Length => BaseStream.Length;
 
-        public long BaseOffset { get; set; }
+        public long BaseOffset => mBaseOffsetStack.Peek();
 
-        public EndianBinaryReader(Stream input, Endianness endianness)
-            : base(input)
+        public Encoding Encoding { get; set; }
+
+        public EndianBinaryReader( Stream input, Endianness endianness )
+            : base( input )
         {
             FileName = input is FileStream fs ? fs.Name : null;
-            Init(Encoding.Default, endianness);
+            Init( Encoding.Default, endianness );
+        }
+
+        public EndianBinaryReader( Stream input, string fileName, Endianness endianness )
+            : base( input )
+        {
+            FileName = input is FileStream fs ? fs.Name : fileName;
+            Init( Encoding.Default, endianness );
         }
 
         public EndianBinaryReader( string filepath, Endianness endianness )
-            : base(File.OpenRead(filepath))
+            : base( File.OpenRead( filepath ) )
         {
             FileName = filepath;
             Init( Encoding.Default, endianness );
         }
 
-        public EndianBinaryReader(Stream input, Encoding encoding, Endianness endianness)
-            : base(input, encoding)
+        public EndianBinaryReader( Stream input, Encoding encoding, Endianness endianness )
+            : base( input, encoding )
         {
             FileName = input is FileStream fs ? fs.Name : null;
-            Init(encoding, endianness);
+            Init( encoding, endianness );
         }
 
         public EndianBinaryReader( Stream input, bool leaveOpen, Endianness endianness )
@@ -64,40 +73,47 @@ namespace G1Tool.IO
             Init( Encoding.Default, endianness );
         }
 
-        public EndianBinaryReader(Stream input, Encoding encoding, bool leaveOpen, Endianness endianness)
-            : base(input, encoding, leaveOpen)
+        public EndianBinaryReader( Stream input, Encoding encoding, bool leaveOpen, Endianness endianness )
+            : base( input, encoding, leaveOpen )
         {
             FileName = input is FileStream fs ? fs.Name : null;
-            Init(encoding, endianness);
+            Init( encoding, endianness );
         }
 
-        private void Init(Encoding encoding, Endianness endianness)
+        private void Init( Encoding encoding, Endianness endianness )
         {
-            mStringBuilder = new StringBuilder();
+            Encoding = encoding;
             Endianness = endianness;
-            BaseOffset = 0;
-            mObjectLookup = new Dictionary<long, object> { [ 0 ] = null };
+            mBaseOffsetStack = new Stack<long>();
+            mBaseOffsetStack.Push( 0 );
+            mObjectLookup = new Dictionary<long, object> { [0] = null };
         }
 
-        public void Seek(long offset, SeekOrigin origin)
+        public void Seek( long offset, SeekOrigin origin )
         {
-            BaseStream.Seek(offset, origin);
+            BaseStream.Seek( offset, origin );
         }
 
-        public void SeekBegin(long offset)
+        public void SeekBegin( long offset )
         {
-            BaseStream.Seek(offset, SeekOrigin.Begin);
+            BaseStream.Seek( offset, SeekOrigin.Begin );
         }
 
-        public void SeekCurrent(long offset)
+        public void SeekCurrent( long offset )
         {
-            BaseStream.Seek(offset, SeekOrigin.Current);
+            BaseStream.Seek( offset, SeekOrigin.Current );
         }
 
-        public void SeekEnd(long offset)
+        public void SeekEnd( long offset )
         {
-            BaseStream.Seek(offset, SeekOrigin.End);
+            BaseStream.Seek( offset, SeekOrigin.End );
         }
+
+        public void PushBaseOffset() => mBaseOffsetStack.Push( Position );
+
+        public void PushBaseOffset( long position ) => mBaseOffsetStack.Push( position );
+
+        public void PopBaseOffset() => mBaseOffsetStack.Pop();
 
         public bool IsValidOffset( int offset )
         {
@@ -123,18 +139,6 @@ namespace G1Tool.IO
             }
         }
 
-        public void ReadOffset( Action<EndianBinaryReader> action )
-        {
-            var offset = ReadInt32();
-            if ( offset != 0 )
-            {
-                long current = Position;
-                SeekBegin( offset + BaseOffset );
-                action( this );
-                SeekBegin( current );
-            }
-        }
-
         public void ReadOffset( int count, Action<int> action )
         {
             ReadOffset( () =>
@@ -146,7 +150,7 @@ namespace G1Tool.IO
 
         public void ReadAtOffset( long offset, Action action )
         {
-            if ( offset == 0 )
+            if ( offset == 0 && BaseOffset == 0 )
                 return;
 
             long current = Position;
@@ -155,20 +159,9 @@ namespace G1Tool.IO
             SeekBegin( current );
         }
 
-        public void ReadAtOffset( long offset, Action<EndianBinaryReader> action )
-        {
-            if ( offset == 0 )
-                return;
-
-            long current = Position;
-            SeekBegin( offset + BaseOffset );
-            action( this );
-            SeekBegin( current );
-        }
-
         public void ReadAtOffset( long offset, int count, Action<int> action )
         {
-            if ( offset == 0 )
+            if ( offset == 0 && BaseOffset == 0 )
                 return;
 
             ReadAtOffset( offset, () =>
@@ -178,9 +171,9 @@ namespace G1Tool.IO
             } );
         }
 
-        internal void ReadAtOffset<T>( long offset, int count, List<T> list, object context = null ) where T : ISerializableObject, new()
+        public void ReadAtOffset<T>( long offset, int count, List<T> list, object context = null ) where T : IBinarySerializable, new()
         {
-            if ( offset == 0 )
+            if ( offset == 0 && BaseOffset == 0 )
                 return;
 
             ReadAtOffset( offset, () =>
@@ -194,19 +187,39 @@ namespace G1Tool.IO
             } );
         }
 
-        public sbyte[] ReadSBytes(int count)
+        public byte ReadByteExpects( byte expected, string message )
+        {
+            var actual = ReadByte();
+            if ( actual != expected )
+                throw new InvalidDataException( message );
+
+            return actual;
+        }
+
+        public List<byte> ReadByteList( int count )
+        {
+            var list = new List<byte>( count );
+            for ( var i = 0; i < list.Capacity; i++ )
+            {
+                list.Add( ReadByte() );
+            }
+
+            return list;
+        }
+
+        public sbyte[] ReadSBytes( int count )
         {
             var array = new sbyte[count];
-            for (var i = 0; i < array.Length; i++)
+            for ( var i = 0; i < array.Length; i++ )
                 array[i] = ReadSByte();
 
             return array;
         }
 
-        public bool[] ReadBooleans(int count)
+        public bool[] ReadBooleans( int count )
         {
             var array = new bool[count];
-            for (var i = 0; i < array.Length; i++)
+            for ( var i = 0; i < array.Length; i++ )
                 array[i] = ReadBoolean();
 
             return array;
@@ -214,13 +227,22 @@ namespace G1Tool.IO
 
         public override short ReadInt16()
         {
-            return SwapBytes ? EndiannessHelper.Swap(base.ReadInt16()) : base.ReadInt16();
+            return SwapBytes ? EndiannessHelper.Swap( base.ReadInt16() ) : base.ReadInt16();
         }
 
-        public short[] ReadInt16s(int count)
+        public short ReadInt16Expects( short expected, string message )
+        {
+            var actual = ReadInt16();
+            if ( actual != expected )
+                throw new InvalidDataException( message );
+
+            return actual;
+        }
+
+        public short[] ReadInt16Array( int count )
         {
             var array = new short[count];
-            for (var i = 0; i < array.Length; i++)
+            for ( var i = 0; i < array.Length; i++ )
             {
                 array[i] = ReadInt16();
             }
@@ -228,15 +250,35 @@ namespace G1Tool.IO
             return array;
         }
 
-        public override ushort ReadUInt16()
+        public List<short> ReadInt16List( int count )
         {
-            return SwapBytes ? EndiannessHelper.Swap(base.ReadUInt16()) : base.ReadUInt16();
+            var list = new List<short>( count );
+            for ( var i = 0; i < list.Capacity; i++ )
+            {
+                list.Add( ReadInt16() );
+            }
+
+            return list;
         }
 
-        public ushort[] ReadUInt16s(int count)
+        public override ushort ReadUInt16()
+        {
+            return SwapBytes ? EndiannessHelper.Swap( base.ReadUInt16() ) : base.ReadUInt16();
+        }
+
+        public ushort ReadUInt16( ushort expected, string message )
+        {
+            var actual = ReadUInt16();
+            if ( actual != expected )
+                throw new InvalidDataException( message );
+
+            return actual;
+        }
+
+        public ushort[] ReadUInt16Array( int count )
         {
             var array = new ushort[count];
-            for (var i = 0; i < array.Length; i++)
+            for ( var i = 0; i < array.Length; i++ )
             {
                 array[i] = ReadUInt16();
             }
@@ -244,11 +286,15 @@ namespace G1Tool.IO
             return array;
         }
 
+        public override decimal ReadDecimal()
+        {
+            return SwapBytes ? EndiannessHelper.Swap( base.ReadDecimal() ) : base.ReadDecimal();
+        }
 
-        public decimal[] ReadDecimals(int count)
+        public decimal[] ReadDecimals( int count )
         {
             var array = new decimal[count];
-            for (var i = 0; i < array.Length; i++)
+            for ( var i = 0; i < array.Length; i++ )
             {
                 array[i] = ReadDecimal();
             }
@@ -256,10 +302,15 @@ namespace G1Tool.IO
             return array;
         }
 
-        public double[] ReadDoubles(int count)
+        public override double ReadDouble()
+        {
+            return SwapBytes ? EndiannessHelper.Swap( base.ReadDouble() ) : base.ReadDouble();
+        }
+
+        public double[] ReadDoubles( int count )
         {
             var array = new double[count];
-            for (var i = 0; i < array.Length; i++)
+            for ( var i = 0; i < array.Length; i++ )
             {
                 array[i] = ReadDouble();
             }
@@ -269,13 +320,22 @@ namespace G1Tool.IO
 
         public override int ReadInt32()
         {
-            return SwapBytes ? EndiannessHelper.Swap(base.ReadInt32()) : base.ReadInt32();
+            return SwapBytes ? EndiannessHelper.Swap( base.ReadInt32() ) : base.ReadInt32();
         }
 
-        public int[] ReadInt32s(int count)
+        public int ReadInt32Expects( int expected, string message = "Unexpected value" )
+        {
+            var actual = ReadInt32();
+            if ( actual != expected )
+                throw new InvalidDataException( message );
+
+            return actual;
+        }
+
+        public int[] ReadInt32s( int count )
         {
             var array = new int[count];
-            for (var i = 0; i < array.Length; i++)
+            for ( var i = 0; i < array.Length; i++ )
             {
                 array[i] = ReadInt32();
             }
@@ -285,13 +345,13 @@ namespace G1Tool.IO
 
         public override long ReadInt64()
         {
-            return SwapBytes ? EndiannessHelper.Swap(base.ReadInt64()) : base.ReadInt64();
+            return SwapBytes ? EndiannessHelper.Swap( base.ReadInt64() ) : base.ReadInt64();
         }
 
-        public long[] ReadInt64s(int count)
+        public long[] ReadInt64s( int count )
         {
             var array = new long[count];
-            for (var i = 0; i < array.Length; i++)
+            for ( var i = 0; i < array.Length; i++ )
             {
                 array[i] = ReadInt64();
             }
@@ -299,10 +359,24 @@ namespace G1Tool.IO
             return array;
         }
 
-        public float[] ReadSingles(int count)
+        public override float ReadSingle()
+        {
+            return SwapBytes ? EndiannessHelper.Swap( base.ReadSingle() ) : base.ReadSingle();
+        }
+
+        public float ReadSingleExpects( float expected, string message )
+        {
+            var actual = ReadSingle();
+            if ( actual != expected )
+                throw new InvalidDataException( message );
+
+            return actual;
+        }
+
+        public float[] ReadSingleArray( int count )
         {
             var array = new float[count];
-            for (var i = 0; i < array.Length; i++)
+            for ( var i = 0; i < array.Length; i++ )
             {
                 array[i] = ReadSingle();
             }
@@ -312,13 +386,22 @@ namespace G1Tool.IO
 
         public override uint ReadUInt32()
         {
-            return SwapBytes ? EndiannessHelper.Swap(base.ReadUInt32()) : base.ReadUInt32();
+            return SwapBytes ? EndiannessHelper.Swap( base.ReadUInt32() ) : base.ReadUInt32();
         }
 
-        public uint[] ReadUInt32s(int count)
+        public uint ReadUInt32Expects( uint expected, string message )
+        {
+            var actual = ReadUInt32();
+            if ( actual != expected )
+                throw new InvalidDataException( message );
+
+            return actual;
+        }
+
+        public uint[] ReadUInt32s( int count )
         {
             var array = new uint[count];
-            for (var i = 0; i < array.Length; i++)
+            for ( var i = 0; i < array.Length; i++ )
             {
                 array[i] = ReadUInt32();
             }
@@ -326,15 +409,35 @@ namespace G1Tool.IO
             return array;
         }
 
-        public override ulong ReadUInt64()
+        public Color ReadColor()
         {
-            return SwapBytes ? EndiannessHelper.Swap(base.ReadUInt64()) : base.ReadUInt64();
+            Color color;
+            color.R = ReadByte();
+            color.G = ReadByte();
+            color.B = ReadByte();
+            color.A = ReadByte();
+
+            return color;
         }
 
-        public ulong[] ReadUInt64s(int count)
+        public Color[] ReadColors( int count )
+        {
+            var array = new Color[count];
+            for ( var i = 0; i < array.Length; i++ )
+                array[i] = ReadColor();
+
+            return array;
+        }
+
+        public override ulong ReadUInt64()
+        {
+            return SwapBytes ? EndiannessHelper.Swap( base.ReadUInt64() ) : base.ReadUInt64();
+        }
+
+        public ulong[] ReadUInt64s( int count )
         {
             var array = new ulong[count];
-            for (var i = 0; i < array.Length; i++)
+            for ( var i = 0; i < array.Length; i++ )
             {
                 array[i] = ReadUInt64();
             }
@@ -342,35 +445,35 @@ namespace G1Tool.IO
             return array;
         }
 
-        public string ReadString(StringBinaryFormat format, int fixedLength = -1)
+        public string ReadString( StringBinaryFormat format, int fixedLength = -1 )
         {
-            mStringBuilder.Clear();
+            var bytes = new List<byte>();
 
-            switch (format)
+            switch ( format )
             {
                 case StringBinaryFormat.NullTerminated:
                     {
                         byte b;
-                        while ((b = ReadByte()) != 0)
-                            mStringBuilder.Append((char)b);
+                        while ( ( b = ReadByte() ) != 0 )
+                            bytes.Add( b );
                     }
                     break;
 
                 case StringBinaryFormat.FixedLength:
                     {
-                        if (fixedLength == -1)
-                            throw new ArgumentException("Invalid fixed length specified");
+                        if ( fixedLength == -1 )
+                            throw new ArgumentException( "Invalid fixed length specified" );
 
                         byte b;
                         var terminated = false;
-                        for (var i = 0; i < fixedLength; i++)
+                        for ( var i = 0; i < fixedLength; i++ )
                         {
                             b = ReadByte();
                             if ( b == 0 )
                                 terminated = true;
 
                             if ( !terminated )
-                                mStringBuilder.Append( ( char ) b );
+                                bytes.Add( b );
                         }
                     }
                     break;
@@ -378,37 +481,37 @@ namespace G1Tool.IO
                 case StringBinaryFormat.PrefixedLength8:
                     {
                         byte length = ReadByte();
-                        for (var i = 0; i < length; i++)
-                            mStringBuilder.Append((char)ReadByte());
+                        for ( var i = 0; i < length; i++ )
+                            bytes.Add( ReadByte() );
                     }
                     break;
 
                 case StringBinaryFormat.PrefixedLength16:
                     {
                         ushort length = ReadUInt16();
-                        for (var i = 0; i < length; i++)
-                            mStringBuilder.Append((char)ReadByte());
+                        for ( var i = 0; i < length; i++ )
+                            bytes.Add( ReadByte() );
                     }
                     break;
 
                 case StringBinaryFormat.PrefixedLength32:
                     {
                         uint length = ReadUInt32();
-                        for (var i = 0; i < length; i++)
-                            mStringBuilder.Append((char)ReadByte());
+                        for ( var i = 0; i < length; i++ )
+                            bytes.Add( ReadByte() );
                     }
                     break;
 
                 default:
-                    throw new ArgumentException("Unknown string format", nameof(format));
+                    throw new ArgumentException( "Unknown string format", nameof( format ) );
             }
 
-            return mStringBuilder.ToString();
+            return Encoding.GetString( bytes.ToArray() );
         }
 
         public string ReadStringAtOffset( long offset, StringBinaryFormat format, int fixedLength = -1 )
         {
-            if ( offset == 0 )
+            if ( offset == 0 && BaseOffset == 0 )
                 return null;
 
             string str = null;
@@ -419,17 +522,17 @@ namespace G1Tool.IO
         public string ReadStringOffset( StringBinaryFormat format = StringBinaryFormat.NullTerminated, int fixedLength = -1 )
         {
             var offset = ReadInt32();
-            if ( offset == 0 )
+            if ( offset == 0 && BaseOffset == 0 )
                 return null;
 
             return ReadStringAtOffset( offset, format, fixedLength );
         }
 
-        public string[] ReadStrings(int count, StringBinaryFormat format, int fixedLength = -1)
+        public string[] ReadStrings( int count, StringBinaryFormat format, int fixedLength = -1 )
         {
             var value = new string[count];
-            for (var i = 0; i < value.Length; i++)
-                value[i] = ReadString(format, fixedLength);
+            for ( var i = 0; i < value.Length; i++ )
+                value[i] = ReadString( format, fixedLength );
 
             return value;
         }
@@ -441,31 +544,44 @@ namespace G1Tool.IO
             return str;
         }
 
-        public T ReadObject<T>( object context = null ) where T : ISerializableObject, new()
+        public T ReadObject<T>( object context = null ) where T : IBinarySerializable, new()
         {
-            //if ( !mObjectLookup.TryGetValue( Position, out var obj ) )
-            //{
-            //    obj = new T
-            //    {
-            //        SourceFilePath   = FileName,
-            //        SourceOffset     = Position,
-            //        SourceEndianness = mEndianness
-            //    };
-            //    mObjectLookup[Position] = obj;
-            //    ((T)obj).Read( this, context );
-            //}
-
-            //return (T)obj;
-
             var obj = new T
             {
-                SourceFilePath   = FileName,
-                SourceOffset     = Position,
-                SourceEndianness = mEndianness
+                SourceInfo = new BinarySourceInfo( FileName, Position, Endianness )
             };
 
-            ( ( T )obj ).Read( this, context );
+            obj.Read( this, context );
             return obj;
+        }
+
+        public List<T> ReadObjectListOffset<T>( int count, object context = null ) where T : IBinarySerializable, new()
+        {
+            List<T> list = null;
+            ReadOffset( () => { list = ReadObjects<T>( count, context ); } );
+            return list;
+        }
+
+        public List<T> ReadObjects<T>( int count, object context = null ) where T : IBinarySerializable, new()
+        {
+            var list = new List<T>( count );
+            for ( int i = 0; i < count; i++ )
+            {
+                list.Add( ReadObject<T>( context ) );
+            }
+
+            return list;
+        }
+
+        public List<T> ReadObjectOffsets<T>( int count, object context = null ) where T : IBinarySerializable, new()
+        {
+            var list = new List<T>( count );
+            for ( int i = 0; i < count; i++ )
+            {
+                list.Add( ReadObjectOffset<T>( context ) );
+            }
+
+            return list;
         }
 
         /// <summary>
@@ -475,7 +591,7 @@ namespace G1Tool.IO
         /// <param name="offset"></param>
         /// <param name="context"></param>
         /// <returns></returns>
-        public T ReadObjectAtOffset<T>( long offset, object context = null ) where T : ISerializableObject, new()
+        public T ReadObjectAtOffset<T>( long offset, object context = null ) where T : IBinarySerializable, new()
         {
             object obj = null;
             var effectiveOffset = offset + BaseOffset;
@@ -489,7 +605,7 @@ namespace G1Tool.IO
                 mObjectLookup[effectiveOffset] = obj;
             }
 
-            return ( T ) obj;
+            return ( T )obj;
         }
 
         /// <summary>
@@ -498,13 +614,18 @@ namespace G1Tool.IO
         /// <typeparam name="T"></typeparam>
         /// <param name="context"></param>
         /// <returns></returns>
-        public T ReadObjectOffset<T>( object context = null ) where T : ISerializableObject, new()
+        public T ReadObjectOffset<T>( object context = null ) where T : IBinarySerializable, new()
         {
             var offset = ReadInt32();
-            if ( offset == 0 )
+            if ( offset == 0 && BaseOffset == 0 )
                 return default( T );
 
             return ReadObjectAtOffset<T>( offset, context );
+        }
+
+        public void Align( int i )
+        {
+            SeekBegin( AlignmentHelper.Align( Position, i ) );
         }
     }
 }

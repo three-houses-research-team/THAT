@@ -1,14 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Text;
-
-namespace G1Tool.IO
+namespace THAT
 {
-    public class EndianBinaryWriter : BinaryWriter
+    public sealed partial class EndianBinaryWriter : BinaryWriter
     {
+        private static readonly Encoding sEncoding = Encoding.GetEncoding( 932 );
+
         internal class ScheduledWrite
         {
             public long Position { get; }
@@ -32,11 +34,13 @@ namespace G1Tool.IO
         }
 
         private Endianness mEndianness;
-        private Encoding mEncoding;
         private LinkedList<ScheduledWrite> mScheduledWrites;
         private LinkedList<long> mScheduledFileSizeWrites;
         private List<long> mOffsetPositions;
         private Dictionary<object, long> mObjectLookup;
+        private Encoding mEncoding;
+        private int mEncodingMinByteCount;
+        private Stack<long> mBaseOffsetStack;
 
         public Endianness Endianness
         {
@@ -50,6 +54,16 @@ namespace G1Tool.IO
 
         public bool SwapBytes { get; private set; }
 
+        public Encoding Encoding
+        {
+            get => mEncoding;
+            set
+            {
+                mEncoding = value;
+                mEncodingMinByteCount = mEncoding.GetMinByteCount();
+            }
+        }
+
         public long Position
         {
             get => BaseStream.Position;
@@ -58,215 +72,316 @@ namespace G1Tool.IO
 
         public long Length => BaseStream.Length;
 
-        public long BaseOffset { get; set; }
+        public long BaseOffset => mBaseOffsetStack.Peek();
 
-        public IReadOnlyList<long> OffsetPositions => mOffsetPositions;
+        public IList<long> OffsetPositions => mOffsetPositions;
 
-        public EndianBinaryWriter(Stream input, Endianness endianness)
-            : base(input)
+        public int DefaultAlignment { get; set; } = 16;
+
+        public bool WriteEmptyLists { get; set; } = true;
+
+        public EndianBinaryWriter( Stream input, Endianness endianness )
+            : base( input )
         {
-            Init(Encoding.Default, endianness);
+            Init( sEncoding, endianness );
         }
 
-        public EndianBinaryWriter(string filepath, Endianness endianness )
-            : base( File.Create( filepath ) )
+        public EndianBinaryWriter( string filepath, Endianness endianness )
+            : base( File.Create( filepath, 1024 * 1024 ) )
         {
-            Init( Encoding.Default, endianness );
+            Init( sEncoding, endianness );
         }
 
-        public EndianBinaryWriter(Stream input, Encoding encoding, Endianness endianness)
-            : base(input, encoding)
+        public EndianBinaryWriter( string filepath, Encoding encoding, Endianness endianness )
+            : base( File.Create( filepath, 1024 * 1024 ) )
         {
-            Init(encoding, endianness);
+            Init( encoding, endianness );
         }
 
-        public EndianBinaryWriter(Stream input, bool leaveOpen, Endianness endianness ) : this( input, Encoding.Default, leaveOpen, endianness ) { }
-
-        public EndianBinaryWriter(Stream input, Encoding encoding, bool leaveOpen, Endianness endianness)
-            : base(input, encoding, leaveOpen)
+        public EndianBinaryWriter( Stream input, Encoding encoding, Endianness endianness )
+            : base( input, encoding )
         {
-            Init(encoding, endianness);
+            Init( encoding, endianness );
         }
 
-        private void Init(Encoding encoding, Endianness endianness)
+        public EndianBinaryWriter( Stream input, bool leaveOpen, Endianness endianness ) : this( input, Encoding.Default, leaveOpen, endianness ) { }
+
+        public EndianBinaryWriter( Stream input, Encoding encoding, bool leaveOpen, Endianness endianness )
+            : base( input, encoding, leaveOpen )
+        {
+            Init( encoding, endianness );
+        }
+
+        private void Init( Encoding encoding, Endianness endianness )
         {
             Endianness = endianness;
-            mEncoding = encoding;
+            Encoding = encoding;
             mScheduledWrites = new LinkedList<ScheduledWrite>();
             mScheduledFileSizeWrites = new LinkedList<long>();
             mOffsetPositions = new List<long>();
-            BaseOffset = 0;
+            mBaseOffsetStack = new Stack<long>();
+            mBaseOffsetStack.Push( 0 );
             mObjectLookup = new Dictionary<object, long>();
         }
 
-        public void Seek(long offset, SeekOrigin origin)
+        [DebuggerStepThrough, MethodImpl( MethodImplOptions.AggressiveInlining )]
+        public void Seek( long offset, SeekOrigin origin )
         {
-            BaseStream.Seek(offset, origin);
+            BaseStream.Seek( offset, origin );
         }
 
-        public void SeekBegin(long offset)
+        [DebuggerStepThrough, MethodImpl( MethodImplOptions.AggressiveInlining )]
+        public void SeekBegin( long offset )
         {
-            BaseStream.Seek(offset, SeekOrigin.Begin);
+            BaseStream.Seek( offset, SeekOrigin.Begin );
         }
 
-        public void SeekCurrent(long offset)
+        [DebuggerStepThrough, MethodImpl( MethodImplOptions.AggressiveInlining )]
+        public void SeekCurrent( long offset )
         {
-            BaseStream.Seek(offset, SeekOrigin.Current);
+            BaseStream.Seek( offset, SeekOrigin.Current );
         }
 
-        public void SeekEnd(long offset)
+        [DebuggerStepThrough, MethodImpl( MethodImplOptions.AggressiveInlining )]
+        public void SeekEnd( long offset )
         {
-            BaseStream.Seek(offset, SeekOrigin.End);
+            BaseStream.Seek( offset, SeekOrigin.End );
         }
 
-        public void Write( IEnumerable<sbyte> values)
+        [DebuggerStepThrough, MethodImpl( MethodImplOptions.AggressiveInlining )]
+        public void Align( int alignment )
+        {
+            WritePadding( AlignmentHelper.GetAlignedDifference( Position, alignment ) );
+        }
+
+        [DebuggerStepThrough, MethodImpl( MethodImplOptions.AggressiveInlining )]
+        public void Align() => Align( DefaultAlignment );
+
+        [DebuggerStepThrough, MethodImpl( MethodImplOptions.AggressiveInlining )]
+        public void PushBaseOffset() => mBaseOffsetStack.Push( Position );
+
+        [DebuggerStepThrough, MethodImpl( MethodImplOptions.AggressiveInlining )]
+        public void PushBaseOffset( long position ) => mBaseOffsetStack.Push( position );
+
+        [DebuggerStepThrough, MethodImpl( MethodImplOptions.AggressiveInlining )]
+        public void PopBaseOffset() => mBaseOffsetStack.Pop();
+
+        [DebuggerStepThrough, MethodImpl( MethodImplOptions.AggressiveInlining )]
+        public void Write( IEnumerable<byte> values )
+        {
+            foreach ( byte t in values )
+                Write( t );
+        }
+
+        [DebuggerStepThrough, MethodImpl( MethodImplOptions.AggressiveInlining )]
+        public void Write( IEnumerable<sbyte> values )
         {
             foreach ( sbyte t in values )
-                Write(t);
+                Write( t );
         }
 
-        public void Write( IEnumerable<bool> values)
+        [DebuggerStepThrough, MethodImpl( MethodImplOptions.AggressiveInlining )]
+        public void Write( IEnumerable<bool> values )
         {
             foreach ( bool t in values )
-                Write(t);
+                Write( t );
         }
 
-        public override void Write(short value)
+        [DebuggerStepThrough, MethodImpl( MethodImplOptions.AggressiveInlining )]
+        public override void Write( short value )
         {
-            base.Write(SwapBytes ? EndiannessHelper.Swap(value) : value);
+            base.Write( SwapBytes ? EndiannessHelper.Swap( value ) : value );
         }
 
-        public void Write( IEnumerable<short> values)
+        [DebuggerStepThrough, MethodImpl( MethodImplOptions.AggressiveInlining )]
+        public void Write( IEnumerable<short> values )
         {
-            foreach (var value in values)
-                Write(value);
+            foreach ( var value in values )
+                Write( value );
         }
 
-        public override void Write(ushort value)
+        [DebuggerStepThrough, MethodImpl( MethodImplOptions.AggressiveInlining )]
+        public override void Write( ushort value )
         {
-            base.Write(SwapBytes ? EndiannessHelper.Swap(value) : value);
+            base.Write( SwapBytes ? EndiannessHelper.Swap( value ) : value );
         }
 
-        public void Write( IEnumerable<ushort> values)
+        [DebuggerStepThrough, MethodImpl( MethodImplOptions.AggressiveInlining )]
+        public void Write( IEnumerable<ushort> values )
         {
-            foreach (var value in values)
-                Write(value);
+            foreach ( var value in values )
+                Write( value );
         }
 
-        public override void Write(int value)
+        [DebuggerStepThrough, MethodImpl( MethodImplOptions.AggressiveInlining )]
+        public override void Write( int value )
         {
-            base.Write(SwapBytes ? EndiannessHelper.Swap(value) : value);
+            base.Write( SwapBytes ? EndiannessHelper.Swap( value ) : value );
         }
 
-        public void Write(IEnumerable<int> values)
+        [DebuggerStepThrough, MethodImpl( MethodImplOptions.AggressiveInlining )]
+        public void Write( IEnumerable<int> values )
         {
-            foreach (var value in values)
-                Write(value);
+            foreach ( var value in values )
+                Write( value );
         }
 
-        public override void Write(uint value)
+        [DebuggerStepThrough, MethodImpl( MethodImplOptions.AggressiveInlining )]
+        public override void Write( uint value )
         {
-            base.Write(SwapBytes ? EndiannessHelper.Swap(value) : value);
+            base.Write( SwapBytes ? EndiannessHelper.Swap( value ) : value );
         }
 
-        public void Write( IEnumerable<uint> values)
+        [DebuggerStepThrough, MethodImpl( MethodImplOptions.AggressiveInlining )]
+        public void Write( IEnumerable<uint> values )
         {
-            foreach (var value in values)
-                Write(value);
+            foreach ( var value in values )
+                Write( value );
         }
 
-        public override void Write(long value)
+        [DebuggerStepThrough, MethodImpl( MethodImplOptions.AggressiveInlining )]
+        public override void Write( long value )
         {
-            base.Write(SwapBytes ? EndiannessHelper.Swap(value) : value);
+            base.Write( SwapBytes ? EndiannessHelper.Swap( value ) : value );
         }
 
-        public void Write( IEnumerable<long> values)
+        [DebuggerStepThrough, MethodImpl( MethodImplOptions.AggressiveInlining )]
+        public void Write( IEnumerable<long> values )
         {
-            foreach (var value in values)
-                Write(value);
+            foreach ( var value in values )
+                Write( value );
         }
 
-        public override void Write(ulong value)
+        [DebuggerStepThrough, MethodImpl( MethodImplOptions.AggressiveInlining )]
+        public override void Write( ulong value )
         {
-            base.Write(SwapBytes ? EndiannessHelper.Swap(value) : value);
+            base.Write( SwapBytes ? EndiannessHelper.Swap( value ) : value );
         }
 
-        public void Write( IEnumerable<ulong> values)
+        [DebuggerStepThrough, MethodImpl( MethodImplOptions.AggressiveInlining )]
+        public void Write( IEnumerable<ulong> values )
         {
-            foreach (var value in values)
-                Write(value);
+            foreach ( var value in values )
+                Write( value );
         }
 
-        public void Write( IEnumerable<float> values)
+        [DebuggerStepThrough, MethodImpl( MethodImplOptions.AggressiveInlining )]
+        public void WriteHalf( float value ) => Write( FloatToHalf( value ) );
+
+        [DebuggerStepThrough, MethodImpl( MethodImplOptions.AggressiveInlining )]
+        public override void Write( float value )
         {
-            foreach (var value in values)
-                Write(value);
+            base.Write( SwapBytes ? EndiannessHelper.Swap( value ) : value );
         }
 
-        public void Write( IEnumerable<decimal> values)
+        [DebuggerStepThrough, MethodImpl( MethodImplOptions.AggressiveInlining )]
+        public void Write( IEnumerable<float> values )
         {
-            foreach (var value in values)
-                Write(value);
+            foreach ( var value in values )
+                Write( value );
         }
 
-        public void Write(string value, StringBinaryFormat format, int fixedLength = -1)
+        [DebuggerStepThrough, MethodImpl( MethodImplOptions.AggressiveInlining )]
+        public override void Write( decimal value )
+        {
+            base.Write( SwapBytes ? EndiannessHelper.Swap( value ) : value );
+        }
+
+        [DebuggerStepThrough, MethodImpl( MethodImplOptions.AggressiveInlining )]
+        public void Write( IEnumerable<decimal> values )
+        {
+            foreach ( var value in values )
+                Write( value );
+        }
+
+        [DebuggerStepThrough, MethodImpl( MethodImplOptions.AggressiveInlining )]
+        public void Write( Color color )
+        {
+            Write( color.R );
+            Write( color.G );
+            Write( color.B );
+            Write( color.A );
+        }
+
+        [DebuggerStepThrough, MethodImpl( MethodImplOptions.AggressiveInlining )]
+        public void Write( IEnumerable<Color> values )
+        {
+            foreach ( var value in values )
+                Write( value );
+        }
+
+        [DebuggerStepThrough, MethodImpl( MethodImplOptions.AggressiveInlining )]
+        public void Write( string value, StringBinaryFormat format, int fixedLength = -1 )
         {
             if ( value == null )
                 value = string.Empty;
 
-            switch (format)
+            switch ( format )
             {
                 case StringBinaryFormat.NullTerminated:
                     {
-                        Write(mEncoding.GetBytes(value));
+                        Write( Encoding.GetBytes( value ) );
 
-                        for (int i = 0; i < mEncoding.GetMaxByteCount(1); i++)
-                            Write((byte)0);
+                        for ( int i = 0; i < mEncodingMinByteCount; i++ )
+                            Write( ( byte )0 );
                     }
                     break;
                 case StringBinaryFormat.FixedLength:
                     {
-                        if (fixedLength == -1)
+                        if ( fixedLength == -1 )
                         {
-                            throw new ArgumentException("Fixed length must be provided if format is set to fixed length", nameof(fixedLength));
+                            throw new ArgumentException( "Fixed length must be provided if format is set to fixed length", nameof( fixedLength ) );
                         }
 
-                        var bytes = mEncoding.GetBytes(value);
-                        if (bytes.Length > fixedLength)
-                            Array.Resize( ref bytes, fixedLength );
+                        var bytes = Encoding.GetBytes( value );
+                        var bytesToWrite = Math.Min( bytes.Length, fixedLength );
+                        for ( int i = 0; i < bytesToWrite; i++ )
+                            Write( bytes[ i ] );
 
-                        Write(bytes);
-                        fixedLength -= bytes.Length;
+                        fixedLength -= bytesToWrite;
 
-                        while (fixedLength-- > 0)
-                            Write((byte)0);
+                        while ( fixedLength-- > 0 )
+                            Write( ( byte )0 );
                     }
                     break;
 
                 case StringBinaryFormat.PrefixedLength8:
                     {
-                        Write((byte)value.Length);
-                        Write(mEncoding.GetBytes(value));
+                        Write( ( byte )value.Length );
+                        Write( Encoding.GetBytes( value ) );
                     }
                     break;
 
                 case StringBinaryFormat.PrefixedLength16:
                     {
-                        Write((ushort)value.Length);
-                        Write(mEncoding.GetBytes(value));
+                        Write( ( ushort )value.Length );
+                        Write( Encoding.GetBytes( value ) );
                     }
                     break;
 
                 case StringBinaryFormat.PrefixedLength32:
                     {
-                        Write((uint)value.Length);
-                        Write(mEncoding.GetBytes(value));
+                        Write( ( uint )value.Length );
+                        Write( Encoding.GetBytes( value ) );
                     }
                     break;
 
                 default:
-                    throw new ArgumentException("Invalid format specified", nameof(format));
+                    throw new ArgumentException( "Invalid format specified", nameof( format ) );
             }
+        }
+
+        [DebuggerStepThrough, MethodImpl( MethodImplOptions.AggressiveInlining )]
+        public void WriteObject<T>( T obj, object context = null ) where T : IBinarySerializable
+        {
+            obj.Write( this, context );
+        }
+
+        [DebuggerStepThrough, MethodImpl( MethodImplOptions.AggressiveInlining )]
+        public void WriteObjects<T>( IEnumerable<T> collection, object context = null ) where T : IBinarySerializable
+        {
+            foreach ( var obj in collection )
+                obj.Write( this, context );
         }
 
         public void WritePadding( int count )
@@ -275,136 +390,60 @@ namespace G1Tool.IO
                 Write( 0L );
 
             for ( int i = 0; i < count % 8; i++ )
-                Write( ( byte ) 0 );
+                Write( ( byte )0 );
+        }
+		
+		public void WritePadding( uint count )
+        {
+            for ( int i = 0; i < count / 8; i++ )
+                Write( 0L );
+
+            for ( int i = 0; i < count % 8; i++ )
+                Write( ( byte )0 );
         }
 
-        public void WriteAlignmentPadding( int alignment )
-        {
-            WritePadding( AlignmentHelper.GetAlignedDifference( Position, alignment ) );
-        }
+        public void ScheduleWriteOffset( Action action ) => ScheduleWriteOffsetAligned( 0, DefaultAlignment, action );
 
-        public void ScheduleWriteOffset( Action action )
-        {
-            ScheduleWriteOffset( 0, null, () =>
-            {
-                long offset = BaseStream.Position;
-                action();
-                return offset;
-            } );
-        }
+        public void ScheduleWriteOffset( int priority, Action action ) => ScheduleWriteOffsetAligned( priority, DefaultAlignment, action );
 
-        public void ScheduleWriteOffset( Action<EndianBinaryWriter> action )
-        {
-            ScheduleWriteOffset( 0, null, () =>
-            {
-                long offset = BaseStream.Position;
-                action( this );
-                return offset;
-            } );
-        }
-
-        public void ScheduleWriteOffset( int priority, Action action )
-        {
-            ScheduleWriteOffset( priority, null, () =>
-            {
-                long offset = BaseStream.Position;
-                action();
-                return offset;
-            } );
-        }
-
-        public void ScheduleWriteOffsetAligned( int alignment, Action action )
-        {
-            ScheduleWriteOffset( 0, null, () =>
-            {
-                WriteAlignmentPadding( alignment );
-                long offset = BaseStream.Position;
-                action();
-                return offset;
-            } );
-        }
+        public void ScheduleWriteOffsetAligned( int alignment, Action action ) => ScheduleWriteOffsetAligned( 0, alignment, action );
 
         public void ScheduleWriteOffsetAligned( int priority, int alignment, Action action )
         {
             ScheduleWriteOffset( priority, null, () =>
             {
-                WriteAlignmentPadding( alignment );
+                Align( alignment );
                 long offset = BaseStream.Position;
                 action();
                 return offset;
             } );
         }
 
-        public void ScheduleWriteFileSize()
+        public void ScheduleWriteObjectListOffset<T>( IEnumerable<T> list, object context = null ) where T : IBinarySerializable
+            => ScheduleWriteObjectListOffsetAligned( list, DefaultAlignment, context );
+
+        public void ScheduleWriteObjectListOffsetAligned<T>( IEnumerable<T> list, int alignment, object context = null ) where T : IBinarySerializable
         {
-            mScheduledFileSizeWrites.AddLast( Position );
-            Write( 0 );
-        }
-
-        public void WriteRelocationTable()
-        {
-            var basePosition = 0L;
-            foreach ( var position in mOffsetPositions.OrderBy(x => x) )
-            {
-                var positionDelta = position - basePosition;
-                if ( positionDelta <= 0x7F )
-                {
-                    Write( ( byte ) positionDelta );
-                }
-                else if ( positionDelta <= 0x7FFF )
-                {
-                    Write( ( byte ) ( 0x80 | 2 ) );
-                    Write( ( ushort ) positionDelta );
-                }
-                else
-                {
-                    Write( ( byte )( 0x80 | 4 ) );
-                    Write( ( uint ) positionDelta );
-                }
-
-                basePosition = position;
-            }
-        }
-
-        private void ScheduleWriteOffset( int priority, object obj, Func<long> action )
-        {
-            mScheduledWrites.AddLast( new ScheduledWrite( BaseStream.Position, BaseOffset, action, priority, obj ) );
-            Write( 0 );
-        }
-
-        public void PerformScheduledWrites()
-        {
-            DoScheduledOffsetWrites();
-            DoScheduledFileSizeWrites();
-        }
-
-        internal void ScheduleWriteOffset<T>( IList<T> list, int alignment = 4, object context = null ) where T : ISerializableObject
-        {
-            if ( list != null && list.Count != 0 )
-            {
-                ScheduleWriteOffset( 0, list, () =>
-                {
-                    WriteAlignmentPadding( alignment );
-                    var offset = BaseStream.Position;
-
-                    foreach ( var item in list )
-                        item.Write( this, context );
-
-                    return offset;
-                } );
-            }
-            else
+            if ( list == null )
             {
                 Write( 0 );
             }
+            else
+            {
+                ScheduleWriteOffset( 0, list, () =>
+                {
+                    Align( alignment );
+                    long current = BaseStream.Position;
+                    WriteObjects( list, context );
+                    return current;
+                } );
+            }
         }
 
-        internal void WriteObject<T>( T obj, object context = null ) where T : ISerializableObject
-        {
-            obj.Write( this, context );
-        }
+        public void ScheduleWriteObjectOffset<T>( T obj, object context = null ) where T : IBinarySerializable =>
+            ScheduleWriteObjectOffsetAligned( obj, DefaultAlignment, context );
 
-        internal void ScheduleWriteObjectOffset( ISerializableObject obj, int alignment = 4, object context = null )
+        public void ScheduleWriteObjectOffsetAligned<T>( T obj, int alignment, object context = null ) where T : IBinarySerializable
         {
             if ( obj == null )
             {
@@ -414,7 +453,7 @@ namespace G1Tool.IO
             {
                 ScheduleWriteOffset( 0, obj, () =>
                 {
-                    WriteAlignmentPadding( alignment );
+                    Align( alignment );
                     long current = BaseStream.Position;
                     obj.Write( this, context );
                     return current;
@@ -422,7 +461,10 @@ namespace G1Tool.IO
             }
         }
 
-        internal void ScheduleWriteStringOffset( string obj, int alignment = 4 )
+        public void ScheduleWriteStringOffset( string obj ) 
+            => ScheduleWriteStringOffsetAligned( obj, DefaultAlignment );
+
+        public void ScheduleWriteStringOffsetAligned( string obj, int alignment )
         {
             if ( obj == null )
             {
@@ -432,7 +474,7 @@ namespace G1Tool.IO
             {
                 ScheduleWriteOffset( 0, obj, () =>
                 {
-                    WriteAlignmentPadding( alignment );
+                    Align( alignment );
                     long current = BaseStream.Position;
                     Write( obj, StringBinaryFormat.NullTerminated );
                     return current;
@@ -440,7 +482,10 @@ namespace G1Tool.IO
             }
         }
 
-        internal void ScheduleWriteObjectOffset<T>( T obj, int alignment , Action<T> action ) 
+        public void ScheduleWriteObjectOffset<T>( T obj, Action<T> action ) 
+            => ScheduleWriteObjectOffsetAligned( obj, DefaultAlignment, action );
+
+        public void ScheduleWriteObjectOffsetAligned<T>( T obj, int alignment, Action<T> action )
         {
             if ( obj == null )
             {
@@ -450,7 +495,7 @@ namespace G1Tool.IO
             {
                 ScheduleWriteOffset( 0, obj, () =>
                 {
-                    WriteAlignmentPadding( alignment );
+                    Align( alignment );
                     long current = BaseStream.Position;
                     action( obj );
                     return current;
@@ -458,40 +503,18 @@ namespace G1Tool.IO
             }
         }
 
-        public int ScheduleWriteArrayOffset<T>( T[] array, int alignment, Action<T> write )
+        public int ScheduleWriteListOffset<T>( IList<T> list, Action<T> write ) 
+            => ScheduleWriteListOffsetAligned( list, DefaultAlignment, write );
+
+        public int ScheduleWriteListOffsetAligned<T>( IList<T> list, int alignment, Action<T> write )
         {
             var count = 0;
-            if ( array != null && array.Length != 0 )
-            {
-                count = array.Length;
-                ScheduleWriteOffset( 0, array, () =>
-                {
-                    if ( alignment != 0 )
-                        WriteAlignmentPadding( alignment );
-
-                    long offset = BaseStream.Position;
-                    for ( int i = 0; i < array.Length; i++ )
-                        write( array[ i ] );
-
-                    return offset;
-                } );
-            }
-            else
-            {
-                Write( 0 );
-            }
-
-            return count;
-        }
-        public int ScheduleWriteListOffset<T>( List<T> list, int alignment, Action<T> write )
-        {
-            var count = 0;
-            if ( list != null && list.Count != 0 )
+            if ( list != null && ( WriteEmptyLists || list.Count != 0 ) )
             {
                 count = list.Count;
                 ScheduleWriteOffset( 0, list, () =>
                 {
-                    WriteAlignmentPadding( alignment );
+                    Align( alignment );
                     var offset = BaseStream.Position;
 
                     for ( int i = 0; i < list.Count; i++ )
@@ -508,18 +531,21 @@ namespace G1Tool.IO
             return count;
         }
 
-        public int ScheduleWriteListOffset<T>( List<T> list, int alignment = 4, object context = null ) where T : ISerializableObject
+        public int ScheduleWriteListOffset<T>( IList<T> list, object context = null ) where T : IBinarySerializable 
+            => ScheduleWriteListOffsetAligned( list, DefaultAlignment, context );
+
+        public int ScheduleWriteListOffsetAligned<T>( IList<T> list, int alignment, object context = null ) where T : IBinarySerializable
         {
             var count = 0;
-            if ( list != null && list.Count != 0 )
+            if ( list != null && ( WriteEmptyLists || list.Count != 0 ) )
             {
                 count = list.Count;
                 ScheduleWriteOffset( 0, list, () =>
                 {
-                    WriteAlignmentPadding( alignment );
+                    Align( alignment );
                     long offset = BaseStream.Position;
-                    for ( int i = 0; i < list.Count; i++ )
-                        list[ i ].Write( this, context );
+                    foreach ( var t in list )
+                        t.Write( this, context );
 
                     return offset;
                 } );
@@ -530,6 +556,35 @@ namespace G1Tool.IO
             }
 
             return count;
+        }
+
+        public void ScheduleWriteObjectOffsets<T>( IEnumerable<T> list, object context = null ) where T : IBinarySerializable
+            => ScheduleWriteObjectOffsetsAligned( list, DefaultAlignment, context );
+
+        public void ScheduleWriteObjectOffsetsAligned<T>( IEnumerable<T> list, int alignment, object context = null ) where T : IBinarySerializable
+        {
+            foreach ( var obj in list )
+                ScheduleWriteObjectOffsetAligned( obj, alignment, context );
+        }
+
+        public void ScheduleWriteFileSize()
+        {
+            mScheduledFileSizeWrites.AddLast( Position );
+            Write( 0 );
+        }
+
+        public void PerformScheduledWrites()
+        {
+            DoScheduledOffsetWrites();
+            DoScheduledFileSizeWrites();
+        }
+
+        protected override void Dispose( bool disposing )
+        {
+            if ( disposing )
+                PerformScheduledWrites();
+
+            base.Dispose( disposing );
         }
 
         private void DoScheduledOffsetWrites()
@@ -555,7 +610,7 @@ namespace G1Tool.IO
                     current = next;
                 }
 
-                if ( anyWritesDone || curPriority == 0 )
+                if ( anyWritesDone )
                     ++curPriority;
                 else
                     --curPriority;
@@ -593,7 +648,7 @@ namespace G1Tool.IO
                 offset = scheduledWrite.Action();
 
                 // Add to lookup
-                mObjectLookup[ scheduledWrite.Object ] = offset;
+                mObjectLookup[scheduledWrite.Object] = offset;
             }
 
             var relativeOffset = offset - scheduledWrite.BaseOffset;
@@ -607,12 +662,44 @@ namespace G1Tool.IO
             BaseStream.Seek( returnPos, SeekOrigin.Begin );
         }
 
-        protected override void Dispose( bool disposing )
+        private void ScheduleWriteOffset( int priority, object obj, Func<long> action )
         {
-            if ( disposing )
-                PerformScheduledWrites();
+            mScheduledWrites.AddLast( new ScheduledWrite( BaseStream.Position, BaseOffset, action, priority, obj ) );
+            Write( 0 );
+        }
 
-            base.Dispose( disposing );
+        private static ushort FloatToHalf( float value )
+        {
+            int i = Unsafe.As<float, int>( ref value );
+            int s = ( i >> 16 ) & 0x00008000;                    // sign
+            int e = ( ( i >> 23 ) & 0x000000ff ) - ( 127 - 15 ); // exponent
+            int f = i & 0x007fffff;                              // fraction
+
+            // need to handle NaNs and Inf?
+            if ( e <= 0 )
+            {
+                if ( e < -10 )
+                {
+                    if ( s > 0 ) // handle -0.0
+                        return 0x8000;
+                    return 0;
+                }
+                f = ( f | 0x00800000 ) >> ( 1 - e );
+                return ( ushort )( s | ( f >> 13 ) );
+            }
+
+            if ( e == 0xff - ( 127 - 15 ) )
+            {
+                if ( f == 0 ) // Inf
+                    return ( ushort )( s | 0x7c00 );
+                // NAN
+                f >>= 13;
+                return ( ushort )( s | 0x7c00 | f | ( f == 0 ? 1 : 0 ) );
+            }
+
+            if ( e > 30 ) // Overflow
+                return ( ushort )( s | 0x7c00 );
+            return ( ushort )( s | ( e << 10 ) | ( f >> 13 ) );
         }
     }
 }

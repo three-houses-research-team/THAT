@@ -10,6 +10,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.IO;
+using THAT.Formats.KTGL;
+
 namespace THAT
 {
     public partial class Form1 : Form
@@ -85,10 +87,17 @@ namespace THAT
             }).Start();
         }
 
+        private INFO0.Info0 infofile;
         private void Open(string path)
         {
-            byte[] infile = File.ReadAllBytes(path);
-            string magic = Bin.GetMagic(infile);
+            
+            if (Path.GetFileName(path) == "INFO0.bin")
+            {
+                infofile = new INFO0.Info0();
+                infofile.ReadData(path);
+                AddLine(RTB_Output, Convert.ToString(infofile.INFO0Entries[1].FileName));
+                return;
+            }
             if (Directory.Exists(path))
             {
                 if (ModifierKeys == Keys.Control || ModifierKeys == Keys.Shift)
@@ -130,6 +139,8 @@ namespace THAT
             }
             if (File.Exists(path))
             {
+                byte[] infile = File.ReadAllBytes(path);
+                string magic = Bin.GetMagic(infile);
                 string ext = Path.GetExtension(path).ToLower();
                 string filename = Path.GetFileNameWithoutExtension(path).ToLower();
 
@@ -197,6 +208,12 @@ namespace THAT
             RTB_Output.Clear();
             RTB_Output.Text = "Open a file, or Drag/Drop several! Click this box to clear its text." + Environment.NewLine;
 
+        }
+
+        private void iNFOPatcherToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            INFOPatcher infopatcher = new INFOPatcher();
+            infopatcher.ShowDialog();
         }
     }
 }

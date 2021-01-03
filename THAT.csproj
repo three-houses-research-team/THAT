@@ -26,6 +26,7 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -35,6 +36,7 @@
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <PropertyGroup>
     <ApplicationIcon>Byleth.ico</ApplicationIcon>
@@ -45,6 +47,12 @@
     </Reference>
     <Reference Include="DotNetZip, Version=1.14.0.0, Culture=neutral, PublicKeyToken=6583c7c814667745, processorArchitecture=MSIL">
       <HintPath>packages\DotNetZip.1.14.0\lib\net40\DotNetZip.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.WindowsAPICodePack, Version=1.1.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>packages\WindowsAPICodePack-Core.1.1.1\lib\Microsoft.WindowsAPICodePack.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.WindowsAPICodePack.Shell, Version=1.1.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>packages\WindowsAPICodePack-Shell.1.1.1\lib\Microsoft.WindowsAPICodePack.Shell.dll</HintPath>
     </Reference>
     <Reference Include="OpenTK, Version=3.2.1.0, Culture=neutral, PublicKeyToken=bad199fe84eb3df4, processorArchitecture=MSIL">
       <HintPath>packages\OpenTK.3.2.1\lib\net20\OpenTK.dll</HintPath>
@@ -63,6 +71,9 @@
     <Reference Include="System.Core" />
     <Reference Include="System.IO.Compression.FileSystem" />
     <Reference Include="System.Numerics" />
+    <Reference Include="System.Runtime.CompilerServices.Unsafe, Version=5.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>packages\System.Runtime.CompilerServices.Unsafe.5.0.0\lib\net45\System.Runtime.CompilerServices.Unsafe.dll</HintPath>
+    </Reference>
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -86,19 +97,36 @@
     <Compile Include="Formats\KTGL\Bin.cs" />
     <Compile Include="Formats\KTGL\G1T.cs" />
     <Compile Include="Formats\KTGL\GZip.cs" />
+    <Compile Include="Formats\KTGL\INFO0.cs" />
+    <Compile Include="INFOPatcher.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="INFOPatcher.Designer.cs">
+      <DependentUpon>INFOPatcher.cs</DependentUpon>
+    </Compile>
     <Compile Include="IO\AlignmentHelper.cs" />
+    <Compile Include="IO\BinarySourceInfo.cs" />
+    <Compile Include="IO\BitFlags.cs" />
+    <Compile Include="IO\Bits.cs" />
+    <Compile Include="IO\Color.cs" />
+    <Compile Include="IO\EncodingExtensions.cs" />
     <Compile Include="IO\EndianBinaryReader.cs" />
     <Compile Include="IO\EndianBinaryWriter.cs" />
+    <Compile Include="IO\EndianBinaryWriter.ExplicitWriteMethods.cs" />
     <Compile Include="IO\Endianness.cs" />
     <Compile Include="IO\EndiannessHelper.cs" />
     <Compile Include="IO\FileHelper.cs" />
-    <Compile Include="IO\ISerializableObject.cs" />
+    <Compile Include="IO\IBinarySerializable.cs" />
+    <Compile Include="IO\IBinarySerializableExtensions.cs" />
     <Compile Include="IO\StreamView.cs" />
     <Compile Include="IO\StringBinaryFormat.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <EmbeddedResource Include="Form1.resx">
       <DependentUpon>Form1.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="INFOPatcher.resx">
+      <DependentUpon>INFOPatcher.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>

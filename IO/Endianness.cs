@@ -1,6 +1,4 @@
-﻿using System.Linq;
-
-namespace G1Tool.IO
+﻿namespace THAT
 {
     public enum Endianness
     {

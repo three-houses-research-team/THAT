@@ -1,9 +1,14 @@
 ﻿using System.IO;
 
-namespace G1Tool.IO
+namespace THAT
 {
-    public class FileHelper
+    public static class FileEx
     {
+        /// <summary>
+        /// Creates a file. Deletes file if it already exists, creates directory if it doesn't exist.
+        /// </summary>
+        /// <param name="path"></param>
+        /// <returns></returns>
         public static FileStream Create( string path )
         {
             path = Path.GetFullPath( path );
@@ -13,7 +18,10 @@ namespace G1Tool.IO
             else if ( Directory.Exists( path ) )
                 Directory.Delete( path );
 
-            Directory.CreateDirectory( Path.GetDirectoryName( path ) );
+            var directoryName = Path.GetDirectoryName( path );
+            if ( directoryName != null )
+                Directory.CreateDirectory( directoryName );
+
             return File.Create( path );
         }
     }

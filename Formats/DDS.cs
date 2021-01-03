@@ -1,5 +1,4 @@
-﻿using G1Tool.IO;
-using OpenTK.Graphics.OpenGL;
+﻿using OpenTK.Graphics.OpenGL;
 using SFGraphics.GLObjects.Textures;
 using SFGraphics.GLObjects.Textures.TextureFormats;
 using System;
@@ -8,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using THAT;
 
 namespace G1Tool.Formats
 {

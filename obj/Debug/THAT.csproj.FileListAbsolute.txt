@@ -12,3 +12,7 @@ D:\Users\moonl\source\repos\THAT\bin\Debug\DotNetZip.xml
 D:\Users\moonl\source\repos\THAT\bin\Debug\OpenTK.xml
 D:\Users\moonl\source\repos\THAT\obj\Debug\THAT.csproj.CopyComplete
 D:\Users\moonl\source\repos\THAT\obj\Debug\THAT.csproj.Fody.CopyLocal.cache
+D:\Users\moonl\source\repos\THAT\obj\Debug\THAT.INFOPatcher.resources
+D:\Users\moonl\source\repos\THAT\bin\Debug\Microsoft.WindowsAPICodePack.xml
+D:\Users\moonl\source\repos\THAT\bin\Debug\Microsoft.WindowsAPICodePack.Shell.xml
+D:\Users\moonl\source\repos\THAT\bin\Debug\System.Runtime.CompilerServices.Unsafe.xml

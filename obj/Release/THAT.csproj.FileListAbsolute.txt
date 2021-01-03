@@ -12,3 +12,6 @@ D:\Users\moonl\source\repos\THAT\obj\Release\THAT.csproj.Fody.CopyLocal.cache
 D:\Users\moonl\source\repos\THAT\obj\Release\THAT.csproj.CopyComplete
 D:\Users\moonl\source\repos\THAT\obj\Release\THAT.exe
 D:\Users\moonl\source\repos\THAT\obj\Release\THAT.pdb
+D:\Users\moonl\source\repos\THAT\bin\Release\Microsoft.WindowsAPICodePack.xml
+D:\Users\moonl\source\repos\THAT\bin\Release\Microsoft.WindowsAPICodePack.Shell.xml
+D:\Users\moonl\source\repos\THAT\obj\Release\THAT.INFOPatcher.resources

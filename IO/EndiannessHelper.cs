@@ -1,6 +1,7 @@
 ﻿using System;
+using System.Runtime.CompilerServices;
 
-namespace G1Tool.IO
+namespace THAT
 {
     public static class EndiannessHelper
     {
@@ -68,6 +69,44 @@ namespace G1Tool.IO
         }
 
         public static void Swap( ref ulong value )
+        {
+            value = Swap( value );
+        }
+
+        public static float Swap( float value )
+        {
+            var tmp = Swap( Unsafe.As<float, uint>( ref value ) );
+            return Unsafe.As<uint, float>( ref tmp );
+        }
+
+        public static void Swap( ref float value )
+        {
+            value = Swap( value );
+        }
+
+        public static double Swap( double value )
+        {
+            var tmp = Swap( Unsafe.As<double, ulong>( ref value ) );
+            return Unsafe.As<ulong, double>( ref tmp );
+        }
+
+        public static void Swap( ref double value )
+        {
+            value = Swap( value );
+        }
+
+        public static unsafe decimal Swap( decimal value )
+        {
+            ulong* pData = stackalloc ulong[2];
+
+            *pData = Swap( *( ulong* )&value );
+            pData++;
+            *pData = Swap( *( ( ulong* )&value + 16 ) );
+
+            return *( decimal* )pData;
+        }
+
+        public static void Swap( ref decimal value )
         {
             value = Swap( value );
         }

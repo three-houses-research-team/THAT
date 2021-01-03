@@ -1,4 +1,4 @@
-﻿namespace G1Tool.IO
+﻿namespace THAT
 {
     public enum StringBinaryFormat
     {
@@ -7,6 +7,6 @@
         FixedLength,
         PrefixedLength8,
         PrefixedLength16,
-        PrefixedLength32,
+        PrefixedLength32
     }
 }
