@@ -29,8 +29,8 @@
         private void InitializeComponent()
         {
             this.groupBox1 = new System.Windows.Forms.GroupBox();
-            this.TB_InPath = new System.Windows.Forms.TextBox();
             this.B_InPath = new System.Windows.Forms.Button();
+            this.TB_InPath = new System.Windows.Forms.TextBox();
             this.groupBox2 = new System.Windows.Forms.GroupBox();
             this.B_OriPath = new System.Windows.Forms.Button();
             this.TB_OriPath = new System.Windows.Forms.TextBox();
@@ -50,14 +50,7 @@
             this.groupBox1.Size = new System.Drawing.Size(351, 49);
             this.groupBox1.TabIndex = 0;
             this.groupBox1.TabStop = false;
-            this.groupBox1.Text = "Input Folder";
-            // 
-            // TB_InPath
-            // 
-            this.TB_InPath.Location = new System.Drawing.Point(6, 19);
-            this.TB_InPath.Name = "TB_InPath";
-            this.TB_InPath.Size = new System.Drawing.Size(299, 20);
-            this.TB_InPath.TabIndex = 2;
+            this.groupBox1.Text = "Mods Folder";
             // 
             // B_InPath
             // 
@@ -68,6 +61,13 @@
             this.B_InPath.Text = "...";
             this.B_InPath.UseVisualStyleBackColor = true;
             this.B_InPath.Click += new System.EventHandler(this.B_InPath_Click);
+            // 
+            // TB_InPath
+            // 
+            this.TB_InPath.Location = new System.Drawing.Point(6, 19);
+            this.TB_InPath.Name = "TB_InPath";
+            this.TB_InPath.Size = new System.Drawing.Size(299, 20);
+            this.TB_InPath.TabIndex = 2;
             // 
             // groupBox2
             // 
@@ -128,6 +128,7 @@
             this.B_Patch.TabIndex = 6;
             this.B_Patch.Text = "Patch";
             this.B_Patch.UseVisualStyleBackColor = true;
+            this.B_Patch.Click += new System.EventHandler(this.B_Patch_Click);
             // 
             // INFOPatcher
             // 
@@ -141,7 +142,7 @@
             this.Controls.Add(this.groupBox1);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
             this.Name = "INFOPatcher";
-            this.Text = "INFOPatcher";
+            this.Text = "INFO Patcher";
             this.groupBox1.ResumeLayout(false);
             this.groupBox1.PerformLayout();
             this.groupBox2.ResumeLayout(false);

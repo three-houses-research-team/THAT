@@ -15,3 +15,4 @@ D:\Users\moonl\source\repos\THAT\obj\Release\THAT.pdb
 D:\Users\moonl\source\repos\THAT\bin\Release\Microsoft.WindowsAPICodePack.xml
 D:\Users\moonl\source\repos\THAT\bin\Release\Microsoft.WindowsAPICodePack.Shell.xml
 D:\Users\moonl\source\repos\THAT\obj\Release\THAT.INFOPatcher.resources
+D:\Users\moonl\source\repos\THAT\bin\Release\System.Runtime.CompilerServices.Unsafe.xml
