@@ -100,6 +100,7 @@
             // richTextBox1
             // 
             this.richTextBox1.BackColor = System.Drawing.SystemColors.Window;
+            this.richTextBox1.ForeColor = System.Drawing.SystemColors.WindowText;
             this.richTextBox1.Location = new System.Drawing.Point(12, 156);
             this.richTextBox1.Name = "richTextBox1";
             this.richTextBox1.ReadOnly = true;
@@ -110,13 +111,11 @@
             // CB_Log
             // 
             this.CB_Log.AutoSize = true;
-            this.CB_Log.Checked = true;
-            this.CB_Log.CheckState = System.Windows.Forms.CheckState.Checked;
             this.CB_Log.Location = new System.Drawing.Point(12, 128);
             this.CB_Log.Name = "CB_Log";
-            this.CB_Log.Size = new System.Drawing.Size(79, 17);
+            this.CB_Log.Size = new System.Drawing.Size(121, 17);
             this.CB_Log.TabIndex = 5;
-            this.CB_Log.Text = "Log Output";
+            this.CB_Log.Text = "Detailed Log Output";
             this.CB_Log.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             this.CB_Log.UseVisualStyleBackColor = true;
             // 

@@ -11,6 +11,8 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.IO;
 using THAT.Formats.KTGL;
+using OpenTK.Input;
+using System.Diagnostics;
 
 namespace THAT
 {
@@ -24,6 +26,7 @@ namespace THAT
             RTB_Output.DragEnter += Form1_DragEnter;
             DragDrop += Form1_DragDrop;
             RTB_Output.DragDrop += Form1_DragDrop;
+            Settings.ReadSettings("Settings.json");
         }
 
         private volatile int threads;
@@ -90,7 +93,9 @@ namespace THAT
         private INFO0.Info0 infofile;
         private void Open(string path)
         {
-            
+            bool usegust = false;
+            if (Settings.settingsInfo.GustPath != "")
+                usegust = true;
             if (Path.GetFileName(path) == "INFO0.bin")
             {
                 infofile = new INFO0.Info0();
@@ -136,6 +141,11 @@ namespace THAT
                     else
                         AddLine(RTB_Output, string.Format("Packed {0} to {1}", Path.GetFileName(path), Path.GetFileName(path) + ".bin"));
                 }
+                else if (ModifierKeys == Keys.Alt && usegust == true)
+                {
+                    GustG1t(path);
+                    AddLine(RTB_Output, string.Format("Successfully built g1t from {0}.", Path.GetFileName(path)));
+                }
             }
             if (File.Exists(path))
             {
@@ -175,10 +185,37 @@ namespace THAT
                     Bin.Extract(path, decpath);
                     AddLine(RTB_Output, string.Format("Successfully extracted {0}.", Path.GetFileName(path)));
                 }
+                /* On hold until I fix the arugment issue
+                else if (magic == ".g1t" && usegust == true)
+                {
+                    AddLine(RTB_Output, string.Format($"gust path: {Settings.settingsInfo.GustPath + Path.DirectorySeparatorChar + "gust_g1t.exe"}"));
+                    GustG1t(path);
+                    AddLine(RTB_Output, string.Format("Successfully extracted textures from {0}.", Path.GetFileName(path)));
+                }
+                */
                 if (B_DeleteAfterProcessing.Checked)
                 {
                     File.Delete(path);
                 }
+            }
+        }
+
+        private void GustG1t(string path)
+        {
+            using (var proc = new Process())
+            {
+                ProcessStartInfo startInfo = new ProcessStartInfo(Settings.settingsInfo.GustPath + Path.DirectorySeparatorChar + "gust_g1t.exe", path);
+                proc.StartInfo = startInfo;
+                proc.StartInfo.RedirectStandardOutput = true;
+                proc.StartInfo.UseShellExecute = false;
+                proc.Start();
+
+                string output = proc.StandardOutput.ReadToEnd();
+                proc.WaitForExit();
+
+                AddLine(RTB_Output, output);
+                if (proc.ExitCode == 0)
+                    return;
             }
         }
 
@@ -215,5 +252,12 @@ namespace THAT
             INFOPatcher infopatcher = new INFOPatcher();
             infopatcher.ShowDialog();
         }
+
+        private void settingsToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            Settings settings = new Settings();
+            settings.ShowDialog();
+        }
     }
 }
+

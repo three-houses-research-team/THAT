@@ -36,10 +36,11 @@
             this.B_Options = new System.Windows.Forms.ToolStripDropDownButton();
             this.B_BatchCompress = new System.Windows.Forms.ToolStripMenuItem();
             this.B_DeleteAfterProcessing = new System.Windows.Forms.ToolStripMenuItem();
-            this.TB_FilePath = new System.Windows.Forms.TextBox();
-            this.RTB_Output = new System.Windows.Forms.RichTextBox();
             this.toolStripDropDownButton1 = new System.Windows.Forms.ToolStripDropDownButton();
             this.iNFOPatcherToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.TB_FilePath = new System.Windows.Forms.TextBox();
+            this.RTB_Output = new System.Windows.Forms.RichTextBox();
+            this.settingsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStrip1.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -70,14 +71,14 @@
             // B_Open
             // 
             this.B_Open.Name = "B_Open";
-            this.B_Open.Size = new System.Drawing.Size(180, 22);
+            this.B_Open.Size = new System.Drawing.Size(103, 22);
             this.B_Open.Text = "Open";
             this.B_Open.Click += new System.EventHandler(this.B_Open_Click);
             // 
             // B_Go
             // 
             this.B_Go.Name = "B_Go";
-            this.B_Go.Size = new System.Drawing.Size(180, 22);
+            this.B_Go.Size = new System.Drawing.Size(103, 22);
             this.B_Go.Text = "Go";
             this.B_Go.Click += new System.EventHandler(this.B_Go_Click);
             // 
@@ -107,6 +108,25 @@
             this.B_DeleteAfterProcessing.Size = new System.Drawing.Size(196, 22);
             this.B_DeleteAfterProcessing.Text = "Delete After Processing";
             // 
+            // toolStripDropDownButton1
+            // 
+            this.toolStripDropDownButton1.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            this.toolStripDropDownButton1.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.iNFOPatcherToolStripMenuItem,
+            this.settingsToolStripMenuItem});
+            this.toolStripDropDownButton1.Image = ((System.Drawing.Image)(resources.GetObject("toolStripDropDownButton1.Image")));
+            this.toolStripDropDownButton1.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.toolStripDropDownButton1.Name = "toolStripDropDownButton1";
+            this.toolStripDropDownButton1.Size = new System.Drawing.Size(47, 22);
+            this.toolStripDropDownButton1.Text = "Tools";
+            // 
+            // iNFOPatcherToolStripMenuItem
+            // 
+            this.iNFOPatcherToolStripMenuItem.Name = "iNFOPatcherToolStripMenuItem";
+            this.iNFOPatcherToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.iNFOPatcherToolStripMenuItem.Text = "INFO Patcher";
+            this.iNFOPatcherToolStripMenuItem.Click += new System.EventHandler(this.iNFOPatcherToolStripMenuItem_Click);
+            // 
             // TB_FilePath
             // 
             this.TB_FilePath.Location = new System.Drawing.Point(163, 3);
@@ -127,23 +147,12 @@
             this.RTB_Output.Text = "Open a file, or Drag/Drop several! Click this box to clear its text.\n";
             this.RTB_Output.Click += new System.EventHandler(this.RTB_Output_Click);
             // 
-            // toolStripDropDownButton1
+            // settingsToolStripMenuItem
             // 
-            this.toolStripDropDownButton1.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
-            this.toolStripDropDownButton1.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.iNFOPatcherToolStripMenuItem});
-            this.toolStripDropDownButton1.Image = ((System.Drawing.Image)(resources.GetObject("toolStripDropDownButton1.Image")));
-            this.toolStripDropDownButton1.ImageTransparentColor = System.Drawing.Color.Magenta;
-            this.toolStripDropDownButton1.Name = "toolStripDropDownButton1";
-            this.toolStripDropDownButton1.Size = new System.Drawing.Size(47, 22);
-            this.toolStripDropDownButton1.Text = "Tools";
-            // 
-            // iNFOPatcherToolStripMenuItem
-            // 
-            this.iNFOPatcherToolStripMenuItem.Name = "iNFOPatcherToolStripMenuItem";
-            this.iNFOPatcherToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
-            this.iNFOPatcherToolStripMenuItem.Text = "INFO Patcher";
-            this.iNFOPatcherToolStripMenuItem.Click += new System.EventHandler(this.iNFOPatcherToolStripMenuItem_Click);
+            this.settingsToolStripMenuItem.Name = "settingsToolStripMenuItem";
+            this.settingsToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.settingsToolStripMenuItem.Text = "Settings";
+            this.settingsToolStripMenuItem.Click += new System.EventHandler(this.settingsToolStripMenuItem_Click);
             // 
             // Form1
             // 
@@ -177,6 +186,7 @@
         private System.Windows.Forms.ToolStripMenuItem B_DeleteAfterProcessing;
         private System.Windows.Forms.ToolStripDropDownButton toolStripDropDownButton1;
         private System.Windows.Forms.ToolStripMenuItem iNFOPatcherToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem settingsToolStripMenuItem;
     }
 }
 

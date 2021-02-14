@@ -1,4 +1,5 @@
-﻿using Microsoft.WindowsAPICodePack.Dialogs;
+﻿using G1Tool.Formats;
+using Microsoft.WindowsAPICodePack.Dialogs;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -14,6 +15,10 @@ namespace THAT
         public INFOPatcher()
         {
             InitializeComponent();
+            Settings.ReadSettings("Settings.json");
+
+            TB_InPath.Text = Settings.settingsInfo.ModPath;
+            TB_OriPath.Text = Settings.settingsInfo.PatchPath;
         }
 
         private INFO0.Info0 infofile;
@@ -32,33 +37,27 @@ namespace THAT
 
         private string FindPatch(string inpath)
         {
-            string Patch = "none";
-            for (int i = 4; i >= 1; i--)
+            string Patch;
+            // Check if user ignored instrutions and selected the patch folder instead
+            if (File.Exists(inpath + Path.DirectorySeparatorChar + "INFO0.bin") && File.Exists(inpath + Path.DirectorySeparatorChar + "INFO2.bin"))
             {
-                switch (i)
-                {
-                    case 4:
-                        if (Directory.Exists(inpath + Path.DirectorySeparatorChar + "patch4"))
-                            Patch = "patch4";
-                        break;
-                    case 3:
-                        if (Directory.Exists(inpath + Path.DirectorySeparatorChar + "patch3"))
-                            Patch = "patch3";
-                        break;
-                    case 2:
-                        if (Directory.Exists(inpath + Path.DirectorySeparatorChar + "patch2"))
-                            Patch = "patch2";
-                        break;
-                    case 1:
-                        if (Directory.Exists(inpath + Path.DirectorySeparatorChar + "patch1"))
-                            Patch = "patch1";
-                        break;
-                    default:
-                        break;
-                }
+                Patch = Path.GetFileName(inpath);
                 return Patch;
             }
-            return "none";
+
+            // Get latest patch in patch folder
+            int patchnum = 0;
+            string[] patchdirs = Directory.GetDirectories(inpath, "patch*", SearchOption.TopDirectoryOnly);
+            foreach (string dir in patchdirs)
+            {
+                int num = Convert.ToInt32(Path.GetFileName(dir).Replace("patch", ""));
+                if (num > patchnum)
+                    patchnum = num;
+                else
+                    continue;
+            }
+            Patch = $"patch{patchnum}";
+            return Patch;
         }
 
         private void B_InPath_Click(object sender, EventArgs e)
@@ -87,6 +86,7 @@ namespace THAT
 
         private void B_Patch_Click(object sender, EventArgs e)
         {
+            richTextBox1.Clear();
             //Setup Paths
             UIUsage(false);
             string ModPath = TB_InPath.Text;
@@ -98,14 +98,14 @@ namespace THAT
                 return;
             }
             string PatchNum = FindPatch(PatchPath);
-            string info0file = ModPath + Path.DirectorySeparatorChar + PatchNum + Path.DirectorySeparatorChar + "INFO0.bin";
-            NewEntryList = new List<INFO0.INFO0Entry>();
-            if (PatchNum == "none")
+            if (PatchNum == null)
             {
                 AddLine(richTextBox1, "Invaid Original Patch Folder");
                 UIUsage(true);
                 return;
             }
+            string info0file = ModPath + Path.DirectorySeparatorChar + PatchNum + Path.DirectorySeparatorChar + "INFO0.bin";
+            NewEntryList = new List<INFO0.INFO0Entry>();
 
             //detele existing files
             if (File.Exists(ModPath + Path.DirectorySeparatorChar + PatchNum + Path.DirectorySeparatorChar + "INFO0.bin"))
@@ -131,6 +131,8 @@ namespace THAT
                 }
                 catch (FormatException)
                 {
+                    if (CB_Log.Checked)
+                        AddLine(richTextBox1, $"File Found with no ID: {newfile}");
                     continue;
                 }
                 if (CB_Log.Checked)
@@ -138,10 +140,22 @@ namespace THAT
 
                 //Write new Entry
                 byte[] bfile = File.ReadAllBytes(file);
-                NewEntry = new INFO0.INFO0Entry(){ EntryID = entryid, CompressedSize = bfile.Length, DecompressedSize = bfile.Length, IsCompressed = 0, FileName = newfile};
+                if (Bin.GetMagic(bfile) == ".gz")
+                {
+                    byte[] dec = GZip.Decompress(File.ReadAllBytes(file));
+                    NewEntry = new INFO0.INFO0Entry() { EntryID = entryid, CompressedSize = bfile.Length, DecompressedSize = dec.Length, IsCompressed = 1, FileName = newfile };
+                    if (CB_Log.Checked)
+                        AddLine(richTextBox1, $"Created Compressed Entry: {entryid}");
+                }
+                else
+                {
+                    NewEntry = new INFO0.INFO0Entry() { EntryID = entryid, CompressedSize = bfile.Length, DecompressedSize = bfile.Length, IsCompressed = 0, FileName = newfile };
+                    if (CB_Log.Checked)
+                        AddLine(richTextBox1, $"Created Decompressed Entry: {entryid}");
+                }
+                if (!CB_Log.Checked)
+                    AddLine(richTextBox1, $"Added {entryid}");
                 NewEntryList.Add(NewEntry);
-                if (CB_Log.Checked)
-                    AddLine(richTextBox1, $"New Entry Created: {entryid}");
             }
 
             //Check for existing entries and remove is needed
@@ -181,9 +195,7 @@ namespace THAT
                 bw.WriteInt64(4062);
             }
 
-            if (CB_Log.Checked)
-                AddLine(richTextBox1, $"Done");
-
+            AddLine(richTextBox1, $"Done");
             UIUsage(true);
         }
 
