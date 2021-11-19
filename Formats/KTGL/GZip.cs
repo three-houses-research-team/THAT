@@ -91,6 +91,11 @@ namespace G1Tool.Formats
                     br.BaseStream.Write(partitionList[i], 0x0, partitionList[i].Length);
                     currentOffset = br.BaseStream.Position;
                 }
+                //Align Final data to 128
+                while (br.BaseStream.Position % 128 != 0)
+                {
+                    br.Write((byte)0);
+                }
                 return ms.ToArray();
             }
         }
