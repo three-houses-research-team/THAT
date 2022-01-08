@@ -176,7 +176,9 @@ namespace THAT
             List<INFO0.INFO0Entry> finallist = infofile.INFO0Entries.OrderBy(o => o.EntryID).ToList();
 
             //Write Each entry to the info0
-            using (EndianBinaryWriter bw = new EndianBinaryWriter(File.Create(ModPath + Path.DirectorySeparatorChar + PatchNum + Path.DirectorySeparatorChar + "INFO0.bin"), Endianness.Little))
+            if (!Directory.Exists($"{ModPath}\\{PatchNum}"))
+                Directory.CreateDirectory($"{ModPath}\\{PatchNum}");
+            using (EndianBinaryWriter bw = new EndianBinaryWriter(File.Create($"{ModPath}\\{PatchNum}\\INFO0.bin"), Endianness.Little))
             {
                 if (CB_Log.Checked)
                     AddLine(richTextBox1, $"Writing INFO0.bin...");
@@ -187,7 +189,9 @@ namespace THAT
             }
 
             //Write Info2 file
-            using (EndianBinaryWriter bw = new EndianBinaryWriter(File.Create(ModPath + Path.DirectorySeparatorChar + PatchNum + Path.DirectorySeparatorChar + "INFO2.bin"), Endianness.Little))
+            if (!Directory.Exists($"{ModPath}\\{PatchNum}"))
+                Directory.CreateDirectory($"{ModPath}\\{PatchNum}");
+            using (EndianBinaryWriter bw = new EndianBinaryWriter(File.Create($"{ModPath}\\{PatchNum}\\INFO2.bin"), Endianness.Little))
             {
                 if (CB_Log.Checked)
                     AddLine(richTextBox1, $"Writing INFO2.bin...");
