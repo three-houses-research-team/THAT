@@ -103,6 +103,8 @@ namespace G1Tool.Formats
 
         public static string GetMagic(byte[] inbytes)
         {
+            if (inbytes == null || inbytes.Length <= 0)
+                return ".bin";
             byte[] header = new byte[4];
             Array.Copy(inbytes, 0, header, 0, 4);
             string magic = BitConverter.ToString(header).ToLower();
