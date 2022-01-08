@@ -127,7 +127,11 @@ namespace THAT
                 string newfile = file.Replace(ModPath, "rom:").Replace("\\","/");
                 try
                 {
-                    entryid = Convert.ToInt64(Path.GetFileName(newfile).Split('-')[0]);
+                    if (Path.GetFileName(newfile).Contains('-'))
+                        entryid = Convert.ToInt64(Path.GetFileName(newfile).Split('-')[0].Replace(" ",""));
+                    else
+                        entryid = Convert.ToInt64(Path.GetFileName(newfile).Split('.')[0].Replace(" ", ""));
+                    Console.WriteLine();
                 }
                 catch (FormatException)
                 {
